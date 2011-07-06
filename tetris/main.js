@@ -36,22 +36,21 @@ tetris.on_tick = function() {
 };
 
 tetris.set_handlers = function(app) {
-    window.onkeydown = function(event){ app.on_key_down(event) };
+    window.onkeydown = function(event){ app.on_key_down(event); };
+    window.onkeypress = function(event){ app.on_key_press(event); };
+    window.onblur = function(event){ app.on_blur(event); };
 };
 
 //============================================================================//
 function App() {
     this.canvas = new tetris.Canvas();
     this.game = new tetris.Game();
-    // this.game.grid.grid[0][0].empty = false;
-    // this.game.grid.grid[0][1].empty = false;
-    // this.game.grid.grid[0][2].empty = false;
-    // this.game.grid.grid[1][1].empty = false;
-    // this.game.grid.grid[2][2].empty = false;
 }
 
 App.prototype.on_render = function() {
+    //var start = Date.now();
     this.canvas.paint();
+    //console.log("paint time: "+ (Date.now()-start));
     
     requestAnimFrame(tetris.on_render, document.getElementById("main-canvas"));
 };
@@ -74,7 +73,12 @@ App.prototype.update_canvas = function() {
         }
         this.game.shape_dirty = false;
     }
-}
+};
+
+App.prototype.new_game = function() {
+    console.log("App.new_game()");
+    this.game = new tetris.Game();
+};
 
 var LEFT_ARROW = 37; // same in all browsers
 var UP_ARROW = 38; // same in all browsers
@@ -83,10 +87,7 @@ var DOWN_ARROW = 40; // same in all browsers
 var SPACEBAR = 32; // same in all browsers
 
 App.prototype.on_key_down = function(event) {
-    console.log("App.on_key()");
-    if (!window.KeyEvent) {
-        KeyEvent = window.KeyboardEvent;
-    }
+    console.log("App.on_key_down()");
     //console.log(KeyEvent);
     //console.log(event);
     if (event.keyCode === UP_ARROW) {
@@ -109,7 +110,35 @@ App.prototype.on_key_down = function(event) {
         this.update_canvas();
         event.preventDefault();
     }
-    
+};
+
+App.prototype.on_key_press = function(event) {
+    console.log("App.on_key_press()");
+    //console.log(event);
+    var c = String.fromCharCode(event.charCode);
+    if (c === "p" || c === "P") {
+        if (this.game.is_paused()) {
+            this.game.pause(false);
+            this.canvas.set_unpaused();
+        } else {
+            this.game.pause(true);
+            this.canvas.set_paused();
+        }
+        this.update_canvas();
+        event.preventDefault();
+    } 
+    else if (c === "n") {
+        this.new_game();
+    }
+};
+
+App.prototype.on_blur = function(event) {
+    console.log("App.on_blur()");
+    //console.log(event);
+    if (!this.game.is_paused()) {
+        this.game.pause(true);
+        this.canvas.set_paused();
+    }
 };
 
 tetris.App = App;

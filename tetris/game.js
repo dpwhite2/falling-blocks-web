@@ -186,6 +186,37 @@ ActiveShape.prototype.is_empty = function() {
 }
 
 //============================================================================//
+function GameTimer() {
+    this.next_drop = Date.now();
+    this.pause_time = null;
+}
+
+GameTimer.prototype.is_drop_time = function() {
+    return this.next_drop <= Date.now();
+};
+
+GameTimer.prototype.set_drop_time = function(ms) {
+    this.next_drop = Date.now() + ms;
+};
+
+GameTimer.prototype.pause = function() {
+    if (this.pause_time === null) {
+        this.pause_time = Date.now();
+    }
+};
+
+GameTimer.prototype.unpause = function() {
+    if (this.pause_time !== null) {
+        this.next_drop += Date.now() - this.pause_time;
+        this.pause_time = null;
+    }
+};
+
+GameTimer.prototype.paused = function() {
+    return this.pause_time !== null;
+};
+
+//============================================================================//
 function Game() {
     this.grid = new Grid(tetris.config.grid_columns, tetris.config.grid_rows);
     this.shape_generator = new tetris.ShapeGenerator();
@@ -195,11 +226,11 @@ function Game() {
     this.shape_dirty = true;
     
     // game status?
-    this.paused = false;
+    //this.paused = false;
     this.score = 0;
     this.level = 1;
     this.game_over = false;
-    this.next_drop = Date.now();
+    this.timer = new GameTimer();
 }
 
 Game.prototype.get_cells = function() {
@@ -207,7 +238,7 @@ Game.prototype.get_cells = function() {
 };
 
 Game.prototype.reset_next_drop = function() {
-    this.next_drop = Date.now() + 1000;
+    this.timer.set_drop_time(1000);
 };
 
 /* Lock the active shape in place. This occurs when the shape hits the bottom 
@@ -293,11 +324,15 @@ Game.prototype.new_shape = function() {
 Game.prototype.on_game_over = function() {
     console.log("Game.on_game_over()");
     this.game_over = true;
-}
+};
+
+Game.prototype.is_game_active = function() {
+    return !this.active_shape.is_empty() && !this.game_over && !this.timer.paused();
+};
 
 Game.prototype.rotate_shape = function(n) {
     console.log("Game.rotate_shape()");
-    if (!this.active_shape.is_empty() && !this.game_over) {
+    if (this.is_game_active()) {
         this.active_shape.rotate(n);
         if (this.is_overlapping()) {
             this.active_shape.rotate(-n);
@@ -309,7 +344,7 @@ Game.prototype.rotate_shape = function(n) {
 
 Game.prototype.move_shape_horizontal = function(n) {
     console.log("Game.move_shape_horizontal()");
-    if (!this.active_shape.is_empty() && !this.game_over) {
+    if (this.is_game_active()) {
         this.active_shape.move(n,0);
         if (this.is_overlapping()) {
             this.active_shape.move(-n,0);
@@ -321,18 +356,35 @@ Game.prototype.move_shape_horizontal = function(n) {
 
 Game.prototype.drop_shape = function(n) {
     console.log("Game.drop_shape()");
-    if (!this.active_shape.is_empty() && !this.game_over) {
+    if (this.is_game_active()) {
         this.do_drop();
     }
 };
 
+Game.prototype.pause = function(flag) {
+    if (this.timer.paused() === flag) {
+        // do nothing if we are already in the desired state
+        return;
+    }
+    if (flag) {
+        // pause
+        this.timer.pause();
+    } else {
+        // unpause
+        this.timer.unpause();
+    }
+};
+
+Game.prototype.is_paused = function() {
+    return this.timer.paused();
+};
+
 Game.prototype.on_turn = function() {
-    if (this.game_over) {
+    if (this.game_over || this.timer.paused()) {
         return;
     }
     // is it time to drop the shape?
-    var now = Date.now();
-    if (this.next_drop <= now) {
+    if (this.timer.is_drop_time()) {
         if (this.active_shape.is_empty()) {
             this.new_shape();
         } else {

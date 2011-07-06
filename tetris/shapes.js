@@ -74,7 +74,6 @@ Shape.prototype.positions = function(row, col) {
     for (var i=0; i<4; i++) {
         r.push([s[i][0],s[i][1]]);
     }
-    //var r = shape_states[this.name][this.orientation].slice(0);
     for (var i=0; i<4; i++) {
         r[i][0] += row;
         r[i][1] += col;

@@ -5,6 +5,7 @@ var app = null;
 tetris.config = {
     main_canvas_id: "main-canvas",
     buf_canvas_id: "buf-canvas",
+    fg_canvas_id: "fg-canvas",
     bg_canvas_id: "bg-canvas",
     cells_canvas_id: "cells-canvas",
     shape_canvas_id: "shape-canvas",
