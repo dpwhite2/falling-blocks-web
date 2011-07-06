@@ -1,0 +1,33 @@
+
+body {
+    background-color: #eeeeee;
+}
+
+#main-canvas {
+    border: 1px solid black;
+}
+/*
+#buf-canvas, #bg-canvas, #cells-canvas, #shape-canvas {
+    display: none;
+}*/
+
+#buf-canvas, #bg-canvas, #cells-canvas, #shape-canvas {
+    border: 1px solid black;
+}
+#buf-canvas {
+    display: absolute;
+    left: 260;
+}
+#bg-canvas {
+    display: absolute;
+    left: 520;
+}
+#cells-canvas {
+    display: absolute;
+    left: 780;
+}
+#shape-canvas {
+    display: absolute;
+    left: 1040;
+}
+
