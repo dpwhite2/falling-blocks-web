@@ -23,7 +23,7 @@ tetris.start = function() {
     //var canvas = new tetris.Canvas();
     app = new tetris.App();
     tetris.set_handlers(app);
-    interval_id = setInterval(tetris.on_tick, 4);
+    interval_id = setInterval(tetris.on_tick, 5);
     requestAnimFrame(tetris.on_render, document.getElementById("main-canvas"));
 };
 
@@ -120,9 +120,11 @@ App.prototype.on_key_press = function(event) {
         if (this.game.is_paused()) {
             this.game.pause(false);
             this.canvas.set_unpaused();
+            interval_id = window.setInterval(tetris.on_tick, 5);
         } else {
             this.game.pause(true);
             this.canvas.set_paused();
+            window.clearInterval(interval_id);
         }
         this.update_canvas();
         event.preventDefault();
@@ -138,6 +140,7 @@ App.prototype.on_blur = function(event) {
     if (!this.game.is_paused()) {
         this.game.pause(true);
         this.canvas.set_paused();
+        window.clearInterval(interval_id);
     }
 };
 

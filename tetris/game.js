@@ -117,25 +117,34 @@ Grid.prototype.clear_lines = function() {
 function ShapeGenerator() {
     this.shape_names = ["I","L","J","T","O","S","Z"];
     this.last_shapes = [];
+    this.recent_shapes = {"I":0,"L":0,"J":0,"T":0,"O":0,"S":0,"Z":0};
 }
 
 ShapeGenerator.prototype.choose = function() {
+    /* Every shape is used at least once before any single shape is used three 
+       times. */
     var k = Math.floor(Math.random()*7);
     var name = this.shape_names[k];
-    // check if there are more than two occurrences of name
-    var count = 0;
-    for (var i=0; i<this.last_shapes.length; i++) {
-        if (this.last_shapes[i] === name) {
-            count++;
-            if (count === 3) {
-                return null;
-            }
+    // check if shape has been used 3 or more times
+    if (this.recent_shapes[name] >= 3) {
+        return null;
+    }
+    this.recent_shapes[name] += 1;
+    var all_greater_than_zero = true;
+    for (var i=0; i<this.shape_names.length; i++) {
+        var shape_name = this.shape_names[i];
+        if (this.recent_shapes[shape_name] === 0) {
+            all_greater_than_zero = false;
+            break;
         }
     }
-    this.last_shapes.push(name);
-    if (this.last_shapes.length > 8) {
-        this.last_shapes.splice(0, 1);
+    if (all_greater_than_zero) {
+        for (var i=0; i<this.shape_names.length; i++) {
+            var shape_name = this.shape_names[i];
+            this.recent_shapes[shape_name] -= 1;
+        }
     }
+    
     return new tetris.Shape(name);
 }
 
