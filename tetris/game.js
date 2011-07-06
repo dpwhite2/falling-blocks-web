@@ -18,6 +18,101 @@ function Grid(cols, rows) {
     }
 }
 
+Grid.prototype.is_empty_at = function(col, row) {
+    return this.grid[col][row].empty;
+}
+
+Grid.prototype.is_overlapping = function(col, row) {
+    if (col >= this.cols || col < 0) {
+        return true;
+    } else if (row >= this.rows || row < 0) {
+        return true;
+    } else if (!this.is_empty_at(col, row)) {
+        return true;
+    }
+    return false;
+}
+
+Grid.prototype.is_at_bottom = function(col, row) {
+    if (row+1 === this.rows) {
+        return true;
+    } else if (!this.is_empty_at(col, row+1)) {
+        return true;
+    }
+    return false;
+};
+
+Grid.prototype.is_row_empty = function(row) {
+    for (var j=0; j<this.cols; j++) {
+        if (!this.is_empty_at(j,row)) {
+            return false;
+        }
+    }
+    return true;
+};
+
+Grid.prototype.drop_row = function(src, dest) {
+    if (src >= dest) {
+        throw "src row must be above dest row. (i.e. src < row must be true)";
+    }
+    for (var j=0; j<this.cols; j++) {
+        this.grid[j][dest].color = this.grid[j][src].color;
+        this.grid[j][dest].empty = this.grid[j][src].empty;
+        this.grid[j][src].empty = true;
+    }
+};
+
+Grid.prototype.is_row_full = function(row) {
+    for (var j=0; j<this.cols; j++) {
+        if (this.is_empty_at(j,row)) {
+            return false;
+        }
+    }
+    return true;
+};
+
+Grid.prototype.clear_row = function(row) {
+    for (var j=0; j<this.cols; j++) {
+        this.grid[j][row].empty = true;
+    }
+};
+
+Grid.prototype.clear_lines = function() {
+    console.log("Grid.clear_lines()");
+    var line_count = 0;
+    
+    for (var i=0; i<this.rows; i++) {
+        if (this.is_row_full(i)) {
+            this.clear_row(i);
+            line_count++;
+        }
+    }
+    
+    if (line_count > 0) {
+        console.log("Grid.clear_lines(): "+line_count+" lines found");
+        for (var i=this.rows-1; i>0; i--) {
+            if (this.is_row_empty(i)) {
+                var non_empty_row_found = false;
+                for (var j=i; j>0; j--) {
+                    if (!this.is_row_empty(j)) {
+                        this.drop_row(j,i);
+                        non_empty_row_found = true;
+                        break;
+                    }
+                }
+                if (!non_empty_row_found) {
+                    break;
+                }
+            }
+        }
+    } else {
+        console.log("Grid.clear_lines(): no lines found");
+    }
+    
+    return line_count;
+}
+
+
 //============================================================================//
 function ShapeGenerator() {
     this.shape_names = ["I","L","J","T","O","S","Z"];
@@ -55,18 +150,56 @@ ShapeGenerator.prototype.next = function() {
 tetris.ShapeGenerator = ShapeGenerator;
 
 //============================================================================//
+function ActiveShape() {
+    this.shape = null;
+    this.center = [tetris.config.grid_columns/2-1, 1];
+}
+
+ActiveShape.prototype.cells = function() {
+    return this.shape.positions(this.center[0], this.center[1]);
+}
+
+ActiveShape.prototype.move = function(dx, dy) {
+    this.center[0] += dx;
+    this.center[1] += dy;
+}
+
+ActiveShape.prototype.rotate = function(n) {
+    this.shape.rotate(n);
+}
+
+ActiveShape.prototype.clear = function() {
+    this.shape = null;
+}
+
+ActiveShape.prototype.color = function() {
+    return this.shape.color;
+}
+
+ActiveShape.prototype.set = function(shape) {
+    this.shape = shape;
+    this.center = [tetris.config.grid_columns/2-1, 1];
+}
+
+ActiveShape.prototype.is_empty = function() {
+    return this.shape === null;
+}
+
+//============================================================================//
 function Game() {
     this.grid = new Grid(tetris.config.grid_columns, tetris.config.grid_rows);
+    this.shape_generator = new tetris.ShapeGenerator();
+    this.active_shape = new ActiveShape();
+    //this.shape_pos = [];
+    this.cells_dirty = true;
+    this.shape_dirty = true;
+    
+    // game status?
     this.paused = false;
     this.score = 0;
     this.level = 1;
-    this.shape_generator = new tetris.ShapeGenerator();
-    this.active_shape = null;
-    this.shape_pos = [];
-    this.next_drop = Date.now();
-    this.cells_dirty = true;
-    this.shape_dirty = true;
     this.game_over = false;
+    this.next_drop = Date.now();
 }
 
 Game.prototype.get_cells = function() {
@@ -77,37 +210,35 @@ Game.prototype.reset_next_drop = function() {
     this.next_drop = Date.now() + 1000;
 };
 
+/* Lock the active shape in place. This occurs when the shape hits the bottom 
+   of the game grid, or when it drops onto occupied cells. */
 Game.prototype.lock = function() {
-    console.debug("Game.lock()");
-    if (this.active_shape === null) {
+    console.log("Game.lock()");
+    if (this.active_shape.is_empty()) {
         throw "active_shape cannot be null when locking it";
     }
-    var positions = this.active_shape.positions(this.shape_pos[0], this.shape_pos[1]);
+    var positions = this.active_shape.cells();
     for (var i=0; i<positions.length; i++) {
         var pos = positions[i];
         var col = pos[0];
         var row = pos[1];
-        if (!this.grid.grid[col][row].empty) {
+        if (!this.grid.is_empty_at(col, row)) {
             throw "cannot lock shape: a cell is already occupied";
         }
-        this.grid.grid[col][row].color = this.active_shape.color;
+        this.grid.grid[col][row].color = this.active_shape.color();
         this.grid.grid[col][row].empty = false;
     }
+    var lines = this.grid.clear_lines();
     this.cells_dirty = true;
     this.shape_dirty = true;
-    this.active_shape = null;
-    // TODO: check for lines
+    this.active_shape.clear();
 };
 
 Game.prototype.is_overlapping = function() {
-    var positions = this.active_shape.positions(this.shape_pos[0], this.shape_pos[1]);
+    var positions = this.active_shape.cells();
     for (var i=0; i<positions.length; i++) {
         var pos = positions[i];
-        if (pos[0] >= tetris.config.grid_columns || pos[0] < 0) {
-            return true;
-        } else if (pos[1] >= tetris.config.grid_rows || pos[1] < 0) {
-            return true;
-        } else if (!this.grid.grid[pos[0]][pos[1]].empty) {
+        if (this.grid.is_overlapping(pos[0], pos[1])) {
             return true;
         }
     }
@@ -115,12 +246,11 @@ Game.prototype.is_overlapping = function() {
 };
 
 Game.prototype.is_at_bottom = function() {
-    var positions = this.active_shape.positions(this.shape_pos[0], this.shape_pos[1]);
+    //var positions = this.active_shape.positions(this.shape_pos[0], this.shape_pos[1]);
+    var positions = this.active_shape.cells();
     for (var i=0; i<positions.length; i++) {
         var pos = positions[i];
-        if (pos[1]+1 === tetris.config.grid_rows) {
-            return true;
-        } else if (!this.grid.grid[pos[0]][pos[1]+1].empty) {
+        if (this.grid.is_at_bottom(pos[0], pos[1])) {
             return true;
         }
     }
@@ -128,8 +258,8 @@ Game.prototype.is_at_bottom = function() {
 };
 
 Game.prototype.do_drop = function() {
-    console.debug("Game.do_drop()");
-    if (this.active_shape === null) {
+    console.log("Game.do_drop()");
+    if (this.active_shape.is_empty()) {
         throw "active_shape cannot be null when dropping it";
     }
     // if shape is above occupied squares or if it is in the bottom row, lock
@@ -137,19 +267,19 @@ Game.prototype.do_drop = function() {
     if (this.is_at_bottom()) {
         this.lock();
     } else {
-        this.shape_pos[1]++;
+        this.active_shape.move(0,1);
     }
     this.reset_next_drop();
     this.shape_dirty = true;
 };
 
 Game.prototype.new_shape = function() {
-    console.debug("Game.new_shape()");
-    if (this.active_shape !== null) {
+    console.log("Game.new_shape()");
+    if (!this.active_shape.is_empty()) {
         throw "active_shape must be null when creating a new shape";
     }
-    this.active_shape = this.shape_generator.next();
-    this.shape_pos = [tetris.config.grid_columns/2-1, 1];
+    this.active_shape.set(this.shape_generator.next());
+    
     // if shape overlaps occupied squares, game over
     if (this.is_overlapping()) {
         this.on_game_over();
@@ -161,41 +291,37 @@ Game.prototype.new_shape = function() {
 };
 
 Game.prototype.on_game_over = function() {
-    console.debug("Game.on_game_over()");
+    console.log("Game.on_game_over()");
     this.game_over = true;
 }
 
 Game.prototype.rotate_shape = function(n) {
-    console.debug("Game.rotate_shape()");
-    if (this.active_shape && !this.game_over) {
+    console.log("Game.rotate_shape()");
+    if (!this.active_shape.is_empty() && !this.game_over) {
         this.active_shape.rotate(n);
         if (this.is_overlapping()) {
             this.active_shape.rotate(-n);
-            console.debug("Game.rotate_shape(): rotate failed due to obstacle");
-        } /*else if (this.is_at_bottom()) {
-            this.lock();
-        }*/
+            console.log("Game.rotate_shape(): rotate failed due to obstacle");
+        }
         this.shape_dirty = true;
     }
 };
 
 Game.prototype.move_shape_horizontal = function(n) {
-    console.debug("Game.move_shape_horizontal()");
-    if (this.active_shape && !this.game_over) {
-        this.shape_pos[0] += n;
+    console.log("Game.move_shape_horizontal()");
+    if (!this.active_shape.is_empty() && !this.game_over) {
+        this.active_shape.move(n,0);
         if (this.is_overlapping()) {
-            this.shape_pos[0] -= n;
-            console.debug("Game.move_shape_horizontal(): move failed due to obstacle");
-        } /*else if (this.is_at_bottom()) {
-            this.lock();
-        }*/
+            this.active_shape.move(-n,0);
+            console.log("Game.move_shape_horizontal(): move failed due to obstacle");
+        }
         this.shape_dirty = true;
     }
 };
 
 Game.prototype.drop_shape = function(n) {
-    console.debug("Game.drop_shape()");
-    if (this.active_shape && !this.game_over) {
+    console.log("Game.drop_shape()");
+    if (!this.active_shape.is_empty() && !this.game_over) {
         this.do_drop();
     }
 };
@@ -207,7 +333,7 @@ Game.prototype.on_turn = function() {
     // is it time to drop the shape?
     var now = Date.now();
     if (this.next_drop <= now) {
-        if (this.active_shape === null) {
+        if (this.active_shape.is_empty()) {
             this.new_shape();
         } else {
             this.do_drop();

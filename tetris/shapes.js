@@ -57,7 +57,7 @@ var shape_colors = {
 
 
 function Shape(name, orientation) {
-    console.debug("Shape()");
+    console.log("Shape()");
     this.name = name;
     this.orientation = orientation || 0;
     this.color = shape_colors[name];

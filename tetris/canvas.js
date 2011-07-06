@@ -60,26 +60,26 @@ Canvas.prototype.paint_cell = function(rc, col, row) {
     var border = tetris.config.cell_border_size;
     var x = border + col * (size + border);
     var y = border + row * (size + border);
-    //console.debug("Canvas.paint_cell()... x="+x+", y="+y);
+    //console.log("Canvas.paint_cell()... x="+x+", y="+y);
     rc.fillRect(x, y, size, size);
     rc.strokeRect(x-0.5, +y-0.5, size+1, size+1);
 };
 
 Canvas.prototype.clear_active_shape = function() {
-    console.debug("Canvas.clear_active_shape()");
+    console.log("Canvas.clear_active_shape()");
     // clear shape_canvas (with transparent alpha)
     var rc = this.shape_canvas.getContext("2d");
     this.clear_canvas(rc);
 };
 
-Canvas.prototype.draw_active_shape = function(shape, center) {
-    //console.debug("Canvas.draw_active_shape()");
+Canvas.prototype.draw_active_shape = function(shape) {
+    //console.log("Canvas.draw_active_shape()");
     // clear shape_canvas (with transparent alpha)
     var rc = this.shape_canvas.getContext("2d");
     this.clear_canvas(rc);
     // draw shape on canvas
-    rc.fillStyle = shape.color;
-    var positions = shape.positions(center[0], center[1]);
+    rc.fillStyle = shape.color();
+    var positions = shape.cells();
     for (var i=0; i<positions.length; i++) {
         var pos = positions[i];
         this.paint_cell(rc, pos[0], pos[1]);
@@ -87,7 +87,7 @@ Canvas.prototype.draw_active_shape = function(shape, center) {
 };
 
 Canvas.prototype.draw_cells = function(cells) {
-    console.debug("Canvas.draw_cells()");
+    console.log("Canvas.draw_cells()");
     // clear cells_canvas (with transparent alpha)
     var rc = this.cells_canvas.getContext("2d");
     this.clear_canvas(rc);

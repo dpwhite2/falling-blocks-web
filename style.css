@@ -6,11 +6,11 @@ body {
 #main-canvas {
     border: 1px solid black;
 }
-/*
+
 #buf-canvas, #bg-canvas, #cells-canvas, #shape-canvas {
     display: none;
-}*/
-
+}
+/*
 #buf-canvas, #bg-canvas, #cells-canvas, #shape-canvas {
     border: 1px solid black;
 }
@@ -29,5 +29,5 @@ body {
 #shape-canvas {
     display: absolute;
     left: 1040;
-}
+}*/
 
