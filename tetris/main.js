@@ -68,10 +68,19 @@ App.prototype.print_score = function() {
     document.getElementById("level").textContent = this.game.status.level;
     document.getElementById("lines").textContent = this.game.status.lines;
     document.getElementById("shapes").textContent = this.game.status.shapes;
+    
+    document.getElementById("shapes-I").textContent = this.game.status.shape_counts["I"];
+    document.getElementById("shapes-L").textContent = this.game.status.shape_counts["L"];
+    document.getElementById("shapes-J").textContent = this.game.status.shape_counts["J"];
+    document.getElementById("shapes-T").textContent = this.game.status.shape_counts["T"];
+    document.getElementById("shapes-O").textContent = this.game.status.shape_counts["O"];
+    document.getElementById("shapes-S").textContent = this.game.status.shape_counts["S"];
+    document.getElementById("shapes-Z").textContent = this.game.status.shape_counts["Z"];
 };
 
-App.prototype.update_canvas = function() {
-    if (this.game.cells_dirty) {
+App.prototype.update_canvas = function(options) {
+    var options = options || {};
+    if (this.game.cells_dirty || options.force_draw_cells) {
         this.canvas.draw_cells(this.game.get_cells());
         this.game.cells_dirty = false;
     }
@@ -79,7 +88,7 @@ App.prototype.update_canvas = function() {
         this.print_score();
         this.game.status_dirty = false;
     }
-    if (this.game.shape_dirty) {
+    if (this.game.shape_dirty || options.force_draw_shape) {
         if (!this.game.active_shape.is_empty()) {
             this.canvas.draw_active_shape(this.game.active_shape);
         } else {
@@ -126,7 +135,7 @@ App.prototype.on_right_arrow = function() {
 };
 
 App.prototype.on_down_arrow = function() {
-    this.game.drop_shape();
+    this.game.soft_drop();
     this.update_canvas();
 };
 
@@ -180,16 +189,20 @@ App.prototype.on_key_press = function(event) {
             this.game.pause(false);
             this.canvas.set_unpaused();
             interval_id = window.setInterval(tetris.on_tick, 5);
+            this.update_canvas({force_draw_cells: true, force_draw_shape: true});
         } else {
             this.game.pause(true);
             this.canvas.set_paused();
             window.clearInterval(interval_id);
+            this.update_canvas();
         }
-        this.update_canvas();
         event.preventDefault();
     } 
     else if (c === "n") {
         this.new_game();
+    }
+    else if (c === " ") {
+        this.game.hard_drop();
     }
 };
 
@@ -200,6 +213,7 @@ App.prototype.on_blur = function(event) {
         this.game.pause(true);
         this.canvas.set_paused();
         window.clearInterval(interval_id);
+        this.update_canvas();
     }
 };
 

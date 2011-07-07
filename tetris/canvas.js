@@ -99,6 +99,26 @@ ShapesLayer.prototype.draw_cells = function(cells) {
     }
 };
 
+ShapesLayer.prototype.set_paused = function() {
+    var rc = this.cells_canvas.getContext("2d");
+    rc.fillStyle = "rgba(255,255,255,255)";
+    rc.fillRect(0, 0, this.cells_canvas.width, this.cells_canvas.height);
+    rc.fillStyle = "rgba(0,0,0,255)";
+    rc.font = "28px sans-serif";
+    rc.textAlign = "center";
+    rc.fillText("PAUSED", this.cells_canvas.width/2, this.cells_canvas.height/3);
+    rc.font = "12px sans-serif";
+    rc.fillText("Press \"P\" to unpause.", this.cells_canvas.width/2, this.cells_canvas.height/3 + 22);
+    
+    rc = this.shape_canvas.getContext("2d");
+    this.clear_canvas(rc);
+};
+
+ShapesLayer.prototype.set_unpaused = function() {
+    var rc = this.cells_canvas.getContext("2d");
+    this.clear_canvas(rc);
+};
+
 //============================================================================//
 
 
@@ -115,7 +135,7 @@ function Canvas() {
     
     this.main_canvas = document.getElementById(tetris.config.main_canvas_id);
     this.buf_canvas = document.getElementById(tetris.config.buf_canvas_id);
-    this.fg_canvas = document.getElementById(tetris.config.fg_canvas_id);
+    //this.fg_canvas = document.getElementById(tetris.config.fg_canvas_id);
     this.bg_canvas = document.getElementById(tetris.config.bg_canvas_id);
     
     this.main_canvas.width = this.width;
@@ -123,8 +143,8 @@ function Canvas() {
     
     this.buf_canvas.width = this.width;
     this.buf_canvas.height = this.height;
-    this.fg_canvas.width = this.width;
-    this.fg_canvas.height = this.height;
+    //this.fg_canvas.width = this.width;
+    //this.fg_canvas.height = this.height;
     this.bg_canvas.width = this.width;
     this.bg_canvas.height = this.height;
     
@@ -140,8 +160,8 @@ function Canvas() {
     rc.strokeStyle = "rgb(0,0,0,255)";
     rc.strokeRect(this.grid_x-1.5, this.grid_y-1.5, this.shapes_layer.width+3, this.shapes_layer.height+3);
     
-    var rc = this.fg_canvas.getContext("2d");
-    this.clear_canvas(rc);
+    //var rc = this.fg_canvas.getContext("2d");
+    //this.clear_canvas(rc);
 }
 
 Canvas.prototype.clear_canvas = function(rc) {
@@ -162,7 +182,6 @@ Canvas.prototype.paint = function() {
         // merge bg_canvas, cells_canvas, shape_canvas onto buf_canvas
         rc.drawImage(this.bg_canvas, 0, 0, this.bg_canvas.width, this.bg_canvas.height);
         this.shapes_layer.paint(rc);
-        rc.drawImage(this.fg_canvas, 0, 0, this.fg_canvas.width, this.fg_canvas.height);
         
         // copy buf_canvas to main_canvas
         var rc = this.main_canvas.getContext("2d");
@@ -172,21 +191,12 @@ Canvas.prototype.paint = function() {
 };
 
 Canvas.prototype.set_paused = function() {
-    var rc = this.fg_canvas.getContext("2d");
-    rc.fillStyle = "rgba(255,255,255,255)";
-    rc.fillRect(0, 0, this.fg_canvas.width, this.fg_canvas.height);
-    rc.fillStyle = "rgba(0,0,0,255)";
-    rc.font = "28px sans-serif";
-    rc.textAlign = "center";
-    rc.fillText("PAUSED", this.fg_canvas.width/2, this.fg_canvas.height/3);
-    rc.font = "12px sans-serif";
-    rc.fillText("Press \"P\" to unpause.", this.fg_canvas.width/2, this.fg_canvas.height/3 + 22);
+    this.shapes_layer.set_paused();
     this.needs_repaint = true;
 };
 
 Canvas.prototype.set_unpaused = function() {
-    var rc = this.fg_canvas.getContext("2d");
-    this.clear_canvas(rc);
+    this.shapes_layer.set_unpaused();
     this.needs_repaint = true;
 };
 

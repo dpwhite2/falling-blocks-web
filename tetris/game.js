@@ -210,6 +210,10 @@ ActiveShape.prototype.shadow = function() {
     return this.shape.shadow;
 }
 
+ActiveShape.prototype.name = function() {
+    return this.shape.name;
+}
+
 ActiveShape.prototype.set = function(shape) {
     this.shape = shape;
     this.center = [tetris.config.grid_columns/2-1, 1];
@@ -225,17 +229,59 @@ function GameStatus() {
     this.shapes = 0;
     this.lines = 0;
     this.level = 1;
+    this.soft_drop_dist = 0;
+    this.hard_drop_start = -1;
+    this.shape_counts = {"I": 0, "L": 0, "J": 0, "T": 0, "O": 0, "S": 0, "Z": 0};
 }
 
-GameStatus.prototype.on_shape_lock = function(lines) {
+var lines_score_lookup = {
+    0: 0,
+    1: 40,
+    2: 100,
+    3: 300,
+    4: 1200
+};
+
+GameStatus.prototype.calc_points = function(hard_drop_dist, soft_drop_dist, lines) {
+    var points = lines_score_lookup[lines] * this.level;
+    points += hard_drop_dist * 2 * this.level;
+    points += soft_drop_dist * 1 * this.level;
+    return points;
+};
+
+GameStatus.prototype.on_shape_lock = function(lines, active_shape) {
+    var hard_drop_dist = 0;
+    var soft_drop_dist = this.soft_drop_dist;
+    if (this.hard_drop_start !== -1) {
+        hard_drop_dist = active_shape.center[1] - this.hard_drop_start;
+    }
+    var points = this.calc_points(hard_drop_dist, soft_drop_dist, lines);
     this.lines += lines;
     if (this.lines/10 >= this.level) {
         this.level++;
     }
+    console.log("Scoring info:\n  lines: "+lines+"\n  hard_drop_dist: "+hard_drop_dist+"\n  soft_drop_dist: "+soft_drop_dist+"\n  points: "+points);
+    this.score += points;
 };
 
-GameStatus.prototype.on_new_shape = function() {
+GameStatus.prototype.on_new_shape = function(active_shape) {
+    this.shape_counts[active_shape.name()]++;
+    this.soft_drop_dist = 0;
+    this.hard_drop_start = -1;
     this.shapes++;
+};
+
+GameStatus.prototype.on_soft_drop = function() {
+    this.soft_drop_dist++;
+};
+
+GameStatus.prototype.on_hard_drop = function(active_shape) {
+    this.soft_drop_dist = 0;
+    this.hard_drop_start = active_shape.center[1];
+};
+
+GameStatus.prototype.on_auto_drop = function() {
+    this.soft_drop_dist = 0;
 };
 
 //============================================================================//
@@ -275,13 +321,11 @@ function Game() {
     //this.shape_generator = new tetris.DebugShapeGenerator();
     this.shape_generator = new tetris.ShapeGenerator();
     this.active_shape = new ActiveShape();
-    //this.shape_pos = [];
     this.cells_dirty = true;
     this.shape_dirty = true;
     this.status_dirty = true;
     
     // game status?
-    //this.paused = false;
     this.status = new GameStatus();
     this.game_over = false;
     this.timer = new GameTimer();
@@ -316,7 +360,7 @@ Game.prototype.lock = function() {
         this.grid.grid[col][row].empty = false;
     }
     var lines = this.grid.clear_lines();
-    this.status.on_shape_lock(lines);
+    this.status.on_shape_lock(lines, this.active_shape);
     this.status_dirty = true;
     this.cells_dirty = true;
     this.shape_dirty = true;
@@ -346,17 +390,21 @@ Game.prototype.is_at_bottom = function() {
     return false;
 };
 
-Game.prototype.do_drop = function() {
+Game.prototype.do_drop = function(n) {
     //console.log("Game.do_drop()");
+    var n = n || 1;
     if (this.active_shape.is_empty()) {
         throw "active_shape cannot be null when dropping it";
     }
     // if shape is above occupied squares or if it is in the bottom row, lock
     // if shape overlaps occupied squares, game over
-    if (this.is_at_bottom()) {
-        this.lock();
-    } else {
-        this.active_shape.move(0,1);
+    for (var i=0; i<n; i++) {
+        if (this.is_at_bottom()) {
+            this.lock();
+            break;
+        } else {
+            this.active_shape.move(0,1);
+        }
     }
     this.reset_next_drop();
     this.shape_dirty = true;
@@ -375,7 +423,7 @@ Game.prototype.new_shape = function() {
     } else if (this.is_at_bottom()) {
         this.on_game_over();
     }
-    this.status.on_new_shape();
+    this.status.on_new_shape(this.active_shape);
     this.status_dirty = true;
     this.reset_next_drop();
     this.shape_dirty = true;
@@ -414,10 +462,19 @@ Game.prototype.move_shape_horizontal = function(n) {
     }
 };
 
-Game.prototype.drop_shape = function(n) {
-    //console.log("Game.drop_shape()");
+Game.prototype.soft_drop = function(n) {
+    //console.log("Game.soft_drop()");
     if (this.is_game_active()) {
+        this.status.on_soft_drop();
         this.do_drop();
+    }
+};
+
+Game.prototype.hard_drop = function() {
+    //console.log("Game.soft_drop()");
+    if (this.is_game_active()) {
+        this.status.on_hard_drop(this.active_shape);
+        this.do_drop(tetris.config.grid_rows);
     }
 };
 
@@ -448,6 +505,7 @@ Game.prototype.on_turn = function() {
         if (this.active_shape.is_empty()) {
             this.new_shape();
         } else {
+            this.status.on_auto_drop();
             this.do_drop();
         }
     }
