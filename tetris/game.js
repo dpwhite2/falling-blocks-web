@@ -284,6 +284,35 @@ GameStatus.prototype.on_auto_drop = function() {
     this.soft_drop_dist = 0;
 };
 
+var drop_intervals = [
+    1000, // not used
+    1000, // level 1
+     817, // level 2
+     667, // level 3
+     533, // level 4
+     433, // level 5
+     367, // level 6
+     300, // level 7
+     233, // level 8
+     200, // level 9
+     167, // level 10
+     133, // level 11
+     100, // level 12
+      83, // level 13
+      67, // level 14
+      50, // level 15
+      33, // level 16
+      17, // level 17
+];
+
+GameStatus.prototype.drop_interval = function() {
+    if (this.level >= drop_intervals.length) {
+        return drop_intervals[drop_intervals.length-1];
+    } else {
+        return drop_intervals[this.level];
+    }
+};
+
 //============================================================================//
 function GameTimer() {
     this.next_drop = Date.now();
@@ -336,7 +365,7 @@ Game.prototype.get_cells = function() {
 };
 
 Game.prototype.reset_next_drop = function() {
-    this.timer.set_drop_time(1000);
+    this.timer.set_drop_time(this.status.drop_interval());
 };
 
 /* Lock the active shape in place. This occurs when the shape hits the bottom 
