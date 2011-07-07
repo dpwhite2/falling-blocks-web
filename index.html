@@ -12,9 +12,21 @@
 </head>
 
 <body onload="tetris.start()">
-    <canvas id="main-canvas" width="800" height="600">
-        A browser supporting the Canvas element is required.
-    </canvas>
+    <div id="content-wrapper">
+        <div id="canvas-wrapper">
+            <canvas id="main-canvas" width="800" height="600">
+                A browser supporting the Canvas element is required.
+            </canvas>
+        </div>
+        <div id="info-wrapper">
+            <div id="info-box">
+                <div><span id="score">0000</span></div>
+                <div>Level: <span id="level">1</span></div>
+                <div>Lines: <span id="lines">0</span></div>
+                <div>Shapes: <span id="shapes">0</span></div>
+            </div>
+        </div>
+    </div>
     <canvas id="buf-canvas" width="800" height="600"></canvas>
     <canvas id="fg-canvas" width="800" height="600"></canvas>
     <canvas id="bg-canvas" width="800" height="600"></canvas>

@@ -14,6 +14,10 @@ tetris.config = {
     grid_rows: 23,
     
     cell_size: 24,
-    cell_border_size: 1
+    cell_border_size: 1,
+    cell_shadow_size: 2,
+    
+    initial_key_repeat_delay: 250, // milliseconds
+    key_repeat_delay: 25 // milliseconds
     
 };

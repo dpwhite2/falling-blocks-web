@@ -37,6 +37,7 @@ tetris.on_tick = function() {
 
 tetris.set_handlers = function(app) {
     window.onkeydown = function(event){ app.on_key_down(event); };
+    window.onkeyup = function(event){ app.on_key_up(event); };
     window.onkeypress = function(event){ app.on_key_press(event); };
     window.onblur = function(event){ app.on_blur(event); };
 };
@@ -45,6 +46,7 @@ tetris.set_handlers = function(app) {
 function App() {
     this.canvas = new tetris.Canvas();
     this.game = new tetris.Game();
+    this.keys_down = {};
 }
 
 App.prototype.on_render = function() {
@@ -56,14 +58,26 @@ App.prototype.on_render = function() {
 };
 
 App.prototype.on_tick = function() {
+    this.handle_down_keys();
     this.game.on_turn();
     this.update_canvas();
+};
+
+App.prototype.print_score = function() {
+    document.getElementById("score").textContent = this.game.status.score;
+    document.getElementById("level").textContent = this.game.status.level;
+    document.getElementById("lines").textContent = this.game.status.lines;
+    document.getElementById("shapes").textContent = this.game.status.shapes;
 };
 
 App.prototype.update_canvas = function() {
     if (this.game.cells_dirty) {
         this.canvas.draw_cells(this.game.get_cells());
         this.game.cells_dirty = false;
+    }
+    if (this.game.status_dirty) {
+        this.print_score();
+        this.game.status_dirty = false;
     }
     if (this.game.shape_dirty) {
         if (!this.game.active_shape.is_empty()) {
@@ -86,28 +100,73 @@ var RIGHT_ARROW = 39; // same in all browsers
 var DOWN_ARROW = 40; // same in all browsers
 var SPACEBAR = 32; // same in all browsers
 
+App.prototype.handle_down_keys = function() {
+    var now = Date.now();
+    for (var keyCode in this.keys_down) {
+        if (this.keys_down[keyCode].time < now) {
+            this.keys_down[keyCode].func.apply(this);
+            this.keys_down[keyCode].time = now + tetris.config.key_repeat_delay;
+        }
+    }
+};
+
+App.prototype.on_up_arrow = function() {
+    this.game.rotate_shape(1);
+    this.update_canvas();
+};
+
+App.prototype.on_left_arrow = function() {
+    this.game.move_shape_horizontal(-1);
+    this.update_canvas();
+};
+
+App.prototype.on_right_arrow = function() {
+    this.game.move_shape_horizontal(1);
+    this.update_canvas();
+};
+
+App.prototype.on_down_arrow = function() {
+    this.game.drop_shape();
+    this.update_canvas();
+};
+
 App.prototype.on_key_down = function(event) {
+    if (event.keyCode in this.keys_down) {
+        event.preventDefault();
+        return;
+    }
     console.log("App.on_key_down()");
-    //console.log(KeyEvent);
-    //console.log(event);
     if (event.keyCode === UP_ARROW) {
-        this.game.rotate_shape(1);
-        this.update_canvas();
+        this.on_up_arrow();
+        this.keys_down[UP_ARROW] = { func: this.on_up_arrow, 
+                                     time: Date.now()+tetris.config.initial_key_repeat_delay };
         event.preventDefault();
     }
     else if (event.keyCode === LEFT_ARROW) {
-        this.game.move_shape_horizontal(-1);
-        this.update_canvas();
+        this.on_left_arrow();
+        this.keys_down[LEFT_ARROW] = { func: this.on_left_arrow, 
+                                       time: Date.now()+tetris.config.initial_key_repeat_delay };
         event.preventDefault();
     }
     else if (event.keyCode === RIGHT_ARROW) {
-        this.game.move_shape_horizontal(1);
-        this.update_canvas();
+        this.on_right_arrow();
+        this.keys_down[RIGHT_ARROW] = { func: this.on_right_arrow, 
+                                        time: Date.now()+tetris.config.initial_key_repeat_delay };
         event.preventDefault();
     }
     else if (event.keyCode === DOWN_ARROW) {
-        this.game.drop_shape();
-        this.update_canvas();
+        this.on_down_arrow();
+        this.keys_down[DOWN_ARROW] = { func: this.on_down_arrow, 
+                                       time: Date.now()+tetris.config.initial_key_repeat_delay };
+        event.preventDefault();
+    }
+};
+
+App.prototype.on_key_up = function(event) {
+    //console.log("App.on_key_up()");
+    if (event.keyCode in this.keys_down) {
+        //console.log("App.on_key_up(): keyCode in this.keys_down...");
+        delete this.keys_down[event.keyCode];
         event.preventDefault();
     }
 };
