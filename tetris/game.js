@@ -14,9 +14,31 @@ function Grid(cols, rows) {
                 highlight: "rgb(255,255,255)",
                 shadow: "rgb(255,255,255)",
                 row: j,
-                col: i
+                col: i,
+                just_dropped: false
             };
         }
+    }
+    this.just_dropped_cells = [];
+}
+
+Grid.prototype.reset_just_dropped = function() {
+    for (var i=0; i< this.just_dropped_cells.length; i++) {
+        var col = this.just_dropped_cells[i][0];
+        var row = this.just_dropped_cells[i][1];
+        this.grid[col][row].just_dropped = false;
+    }
+    this.just_dropped = [];
+}
+
+Grid.prototype.set_cell = function(col, row, options) {
+    this.grid[col][row].empty = options.empty ? true : false;
+    this.grid[col][row].color = options.color || "rgb(255,255,255)";
+    this.grid[col][row].highlight = options.highlight || "rgb(255,255,255)";
+    this.grid[col][row].shadow = options.shadow || "rgb(255,255,255)";
+    this.grid[col][row].just_dropped = options.just_dropped || false;
+    if (options.just_dropped) {
+        this.just_dropped_cells.push([col,row]);
     }
 }
 
@@ -61,6 +83,7 @@ Grid.prototype.drop_row = function(src, dest) {
         this.grid[j][dest].color = this.grid[j][src].color;
         this.grid[j][dest].highlight = this.grid[j][src].highlight;
         this.grid[j][dest].shadow = this.grid[j][src].shadow;
+        this.grid[j][dest].just_dropped = this.grid[j][src].just_dropped;
         this.grid[j][dest].empty = this.grid[j][src].empty;
         this.grid[j][src].empty = true;
     }
@@ -125,8 +148,8 @@ function ShapeGenerator() {
 }
 
 ShapeGenerator.prototype.choose = function() {
-    /* Every shape is used at least once before any single shape is used three 
-       times. */
+    /* Every shape is used at least once before any single shape is used more 
+       than three times. */
     var k = Math.floor(Math.random()*7);
     var name = this.shape_names[k];
     // check if shape has been used 3 or more times
@@ -285,7 +308,7 @@ GameStatus.prototype.on_auto_drop = function() {
 };
 
 var drop_intervals = [
-    1000, // not used
+    1000, // not used (there is no level 0)
     1000, // level 1
      817, // level 2
      667, // level 3
@@ -323,6 +346,7 @@ GameTimer.prototype.is_drop_time = function() {
     return this.next_drop <= Date.now();
 };
 
+/* The next drop will occur 'ms' milliseconds in the future. */
 GameTimer.prototype.set_drop_time = function(ms) {
     this.next_drop = Date.now() + ms;
 };
@@ -354,7 +378,6 @@ function Game() {
     this.shape_dirty = true;
     this.status_dirty = true;
     
-    // game status?
     this.status = new GameStatus();
     this.game_over = false;
     this.timer = new GameTimer();
@@ -383,10 +406,19 @@ Game.prototype.lock = function() {
         if (!this.grid.is_empty_at(col, row)) {
             throw "cannot lock shape: a cell is already occupied";
         }
-        this.grid.grid[col][row].color = this.active_shape.color();
-        this.grid.grid[col][row].highlight = this.active_shape.highlight();
-        this.grid.grid[col][row].shadow = this.active_shape.shadow();
-        this.grid.grid[col][row].empty = false;
+        // this.grid.grid[col][row].color = this.active_shape.color();
+        // this.grid.grid[col][row].highlight = this.active_shape.highlight();
+        // this.grid.grid[col][row].shadow = this.active_shape.shadow();
+        // this.grid.grid[col][row].empty = false;
+        // this.grid.grid[col][row].just_dropped = true;
+        var options = {
+            color: this.active_shape.color(),
+            highlight: this.active_shape.highlight(),
+            shadow: this.active_shape.shadow(),
+            empty: false,
+            just_dropped: true
+        };
+        this.grid.set_cell(col, row, options);
     }
     var lines = this.grid.clear_lines();
     this.status.on_shape_lock(lines, this.active_shape);
@@ -453,9 +485,11 @@ Game.prototype.new_shape = function() {
         this.on_game_over();
     }
     this.status.on_new_shape(this.active_shape);
-    this.status_dirty = true;
+    this.grid.reset_just_dropped();
     this.reset_next_drop();
+    this.status_dirty = true;
     this.shape_dirty = true;
+    this.cells_dirty = true;
 };
 
 Game.prototype.on_game_over = function() {

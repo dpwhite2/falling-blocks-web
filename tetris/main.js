@@ -94,6 +94,9 @@ App.prototype.update_canvas = function(options) {
         } else {
             this.canvas.clear_active_shape();
         }
+        if (this.game.game_over) {
+            this.canvas.draw_game_over();
+        }
         this.game.shape_dirty = false;
     }
 };
