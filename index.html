@@ -3,6 +3,7 @@
 <head>
     <title>Falling Blocks: An HTML5 Canvas Game</title>
     <script src="tetris/config.js" type="text/javascript"></script>
+    <script src="tetris/logger.js" type="text/javascript"></script>
     <script src="tetris/shapes.js" type="text/javascript"></script>
     <script src="tetris/game.js" type="text/javascript"></script>
     <script src="tetris/canvas.js" type="text/javascript"></script>
@@ -13,27 +14,71 @@
 
 <body onload="tetris.start()">
     <div id="content-wrapper">
+    
         <div id="canvas-wrapper">
             <canvas id="main-canvas" width="800" height="600">
                 A browser supporting the Canvas element is required.
             </canvas>
         </div>
+        
         <div id="info-wrapper">
             <div id="info-box">
-                <div><span id="score">0000</span></div>
-                <div>Level: <span id="level">1</span></div>
-                <div>Lines: <span id="lines">0</span></div>
-                <div>Shapes: <span id="shapes">0</span></div>
-                <div>I: <span id="shapes-I">0</span></div>
-                <div>L: <span id="shapes-L">0</span></div>
-                <div>J: <span id="shapes-J">0</span></div>
-                <div>T: <span id="shapes-T">0</span></div>
-                <div>O: <span id="shapes-O">0</span></div>
-                <div>S: <span id="shapes-S">0</span></div>
-                <div>Z: <span id="shapes-Z">0</span></div>
+                <div id="score-box">
+                    <span id="score">0000</span>
+                </div>
+                <table id="stats-table">
+                    <tr>
+                        <th>Level:</th>
+                        <td id="level">1</td>
+                    </tr>
+                    <tr>
+                        <th>Lines:</th>
+                        <td id="lines">0</td>
+                    </tr>
+                    <tr>
+                        <th>Shapes</th>
+                        <td id="shapes">0</td>
+                    </tr>
+                    <tr>
+                        <th>Time</th>
+                        <td id="elapsed">0</td>
+                    </tr>
+                </table>
+                <table id="shape-counts-table">
+                    <tr>
+                        <th>I:</th>
+                        <td id="shapes-I">0</td>
+                    </tr>
+                    <tr>
+                        <th>L:</th>
+                        <td id="shapes-L">0</td>
+                    </tr>
+                    <tr>
+                        <th>J:</th>
+                        <td id="shapes-J">0</td>
+                    </tr>
+                    <tr>
+                        <th>T:</th>
+                        <td id="shapes-T">0</td>
+                    </tr>
+                    <tr>
+                        <th>O:</th>
+                        <td id="shapes-O">0</td>
+                    </tr>
+                    <tr>
+                        <th>S:</th>
+                        <td id="shapes-S">0</td>
+                    </tr>
+                    <tr>
+                        <th>Z:</th>
+                        <td id="shapes-Z">0</td>
+                    </tr>
+                </table>
             </div>
         </div>
+        
     </div>
+    
     <canvas id="buf-canvas" width="800" height="600"></canvas>
     <canvas id="fg-canvas" width="800" height="600"></canvas>
     <canvas id="bg-canvas" width="800" height="600"></canvas>

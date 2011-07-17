@@ -105,7 +105,7 @@ Grid.prototype.clear_row = function(row) {
 };
 
 Grid.prototype.clear_lines = function() {
-    console.log("Grid.clear_lines()");
+    logger.log("Grid.clear_lines()");
     var line_count = 0;
     
     for (var i=0; i<this.rows; i++) {
@@ -116,7 +116,7 @@ Grid.prototype.clear_lines = function() {
     }
     
     if (line_count > 0) {
-        console.log("Grid.clear_lines(): "+line_count+" lines found");
+        logger.log("Grid.clear_lines(): "+line_count+" lines found");
         for (var i=this.rows-1; i>0; i--) {
             if (this.is_row_empty(i)) {
                 var non_empty_row_found = false;
@@ -133,7 +133,7 @@ Grid.prototype.clear_lines = function() {
             }
         }
     } else {
-        console.log("Grid.clear_lines(): no lines found");
+        logger.log("Grid.clear_lines(): no lines found");
     }
     
     return line_count;
@@ -283,7 +283,7 @@ GameStatus.prototype.on_shape_lock = function(lines, active_shape) {
     if (this.lines/10 >= this.level) {
         this.level++;
     }
-    console.log("Scoring info:\n  lines: "+lines+"\n  hard_drop_dist: "+hard_drop_dist+"\n  soft_drop_dist: "+soft_drop_dist+"\n  points: "+points);
+    logger.log("Scoring info:\n  lines: "+lines+"\n  hard_drop_dist: "+hard_drop_dist+"\n  soft_drop_dist: "+soft_drop_dist+"\n  points: "+points);
     this.score += points;
 };
 
@@ -340,6 +340,8 @@ GameStatus.prototype.drop_interval = function() {
 function GameTimer() {
     this.next_drop = Date.now();
     this.pause_time = null;
+    this.start_time = Date.now();
+    this.cumulative_paused_time = 0;
 }
 
 GameTimer.prototype.is_drop_time = function() {
@@ -359,13 +361,24 @@ GameTimer.prototype.pause = function() {
 
 GameTimer.prototype.unpause = function() {
     if (this.pause_time !== null) {
-        this.next_drop += Date.now() - this.pause_time;
+        var now = Date.now();
+        this.next_drop += now - this.pause_time;
+        this.cumulative_paused_time += now - this.pause_time;
         this.pause_time = null;
     }
 };
 
 GameTimer.prototype.paused = function() {
     return this.pause_time !== null;
+};
+
+GameTimer.prototype.elapsed = function() {
+    if (this.pause_time !== null) {
+        var ms = (this.pause_time - this.start_time) - this.cumulative_paused_time;
+    } else {
+        var ms = (Date.now() - this.start_time) - this.cumulative_paused_time;
+    }
+    return ms / 1000;
 };
 
 //============================================================================//
@@ -394,7 +407,7 @@ Game.prototype.reset_next_drop = function() {
 /* Lock the active shape in place. This occurs when the shape hits the bottom 
    of the game grid, or when it drops onto occupied cells. */
 Game.prototype.lock = function() {
-    console.log("Game.lock()");
+    logger.debug("Game.lock()");
     if (this.active_shape.is_empty()) {
         throw "active_shape cannot be null when locking it";
     }
@@ -406,11 +419,6 @@ Game.prototype.lock = function() {
         if (!this.grid.is_empty_at(col, row)) {
             throw "cannot lock shape: a cell is already occupied";
         }
-        // this.grid.grid[col][row].color = this.active_shape.color();
-        // this.grid.grid[col][row].highlight = this.active_shape.highlight();
-        // this.grid.grid[col][row].shadow = this.active_shape.shadow();
-        // this.grid.grid[col][row].empty = false;
-        // this.grid.grid[col][row].just_dropped = true;
         var options = {
             color: this.active_shape.color(),
             highlight: this.active_shape.highlight(),
@@ -452,7 +460,7 @@ Game.prototype.is_at_bottom = function() {
 };
 
 Game.prototype.do_drop = function(n) {
-    //console.log("Game.do_drop()");
+    //logger.log("Game.do_drop()");
     var n = n || 1;
     if (this.active_shape.is_empty()) {
         throw "active_shape cannot be null when dropping it";
@@ -472,7 +480,7 @@ Game.prototype.do_drop = function(n) {
 };
 
 Game.prototype.new_shape = function() {
-    console.log("Game.new_shape()");
+    logger.debug("Game.new_shape()");
     if (!this.active_shape.is_empty()) {
         throw "active_shape must be null when creating a new shape";
     }
@@ -493,8 +501,9 @@ Game.prototype.new_shape = function() {
 };
 
 Game.prototype.on_game_over = function() {
-    console.log("Game.on_game_over()");
+    logger.log("Game.on_game_over()");
     this.game_over = true;
+    this.timer.pause();
 };
 
 Game.prototype.is_game_active = function() {
@@ -502,31 +511,46 @@ Game.prototype.is_game_active = function() {
 };
 
 Game.prototype.rotate_shape = function(n) {
-    //console.log("Game.rotate_shape()");
+    //logger.log("Game.rotate_shape()");
     if (this.is_game_active()) {
         this.active_shape.rotate(n);
+        
         if (this.is_overlapping()) {
-            this.active_shape.rotate(-n);
-            console.log("Game.rotate_shape(): rotate failed due to obstacle");
+            // try moving left
+            this.active_shape.move(-1,0);
+            if (this.is_overlapping()) {
+                // try moving right
+                this.active_shape.move(2,0);
+                if (this.is_overlapping()) {
+                    // return to original position, and undo rotation
+                    this.active_shape.move(-1,0);
+                    this.active_shape.rotate(-n);
+                    if (tetris.config.debug) {
+                        logger.debug("Game.rotate_shape(): rotate failed due to obstacle");
+                    }
+                }
+            }
         }
         this.shape_dirty = true;
     }
 };
 
 Game.prototype.move_shape_horizontal = function(n) {
-    //console.log("Game.move_shape_horizontal()");
+    //logger.log("Game.move_shape_horizontal()");
     if (this.is_game_active()) {
         this.active_shape.move(n,0);
         if (this.is_overlapping()) {
             this.active_shape.move(-n,0);
-            console.log("Game.move_shape_horizontal(): move failed due to obstacle");
+            if (tetris.config.debug) {
+                logger.debug("Game.move_shape_horizontal(): move failed due to obstacle");
+            }
         }
         this.shape_dirty = true;
     }
 };
 
 Game.prototype.soft_drop = function(n) {
-    //console.log("Game.soft_drop()");
+    //logger.log("Game.soft_drop()");
     if (this.is_game_active()) {
         this.status.on_soft_drop();
         this.do_drop();
@@ -534,7 +558,7 @@ Game.prototype.soft_drop = function(n) {
 };
 
 Game.prototype.hard_drop = function() {
-    //console.log("Game.soft_drop()");
+    //logger.log("Game.soft_drop()");
     if (this.is_game_active()) {
         this.status.on_hard_drop(this.active_shape);
         this.do_drop(tetris.config.grid_rows);
@@ -550,8 +574,10 @@ Game.prototype.pause = function(flag) {
         // pause
         this.timer.pause();
     } else {
-        // unpause
-        this.timer.unpause();
+        if (!this.game_over) {
+            // unpause
+            this.timer.unpause();
+        }
     }
 };
 

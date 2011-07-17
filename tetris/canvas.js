@@ -46,7 +46,7 @@ ShapesLayer.prototype.paint_cell = function(rc, col, row, color, highlight, shad
     
     var x = this.cell_border + col * (this.cell_size + this.cell_border);
     var y = this.cell_border + row * (this.cell_size + this.cell_border);
-    //console.log("ShapesLayer.paint_cell()... x="+x+", y="+y);
+    //logger.log("ShapesLayer.paint_cell()... x="+x+", y="+y);
     rc.fillRect(x, y, this.cell_size, this.cell_size);
     if (this.cell_border > 0) {
         rc.strokeRect(x-this.cell_border/2, y-this.cell_border/2, 
@@ -153,8 +153,12 @@ ShapesLayer.prototype.draw_game_over = function() {
 
 ShapesLayer.prototype.set_paused = function() {
     var rc = this.cells_canvas.getContext("2d");
-    rc.fillStyle = "rgba(255,255,255,255)";
-    rc.fillRect(0, 0, this.cells_canvas.width, this.cells_canvas.height);
+
+    if (!tetris.config.debug) {
+        rc.fillStyle = "rgba(255,255,255,255)";
+        rc.fillRect(0, 0, this.cells_canvas.width, this.cells_canvas.height);
+    }
+    
     rc.fillStyle = "rgba(0,0,0,255)";
     //rc.font = "28px Times New Roman, sans-serif";
     rc.font = font(28);
@@ -164,8 +168,10 @@ ShapesLayer.prototype.set_paused = function() {
     rc.font = font(12);
     rc.fillText("Press \u201CP\u201D to unpause.", this.cells_canvas.width/2, this.cells_canvas.height/3 + 22);
     
-    rc = this.shape_canvas.getContext("2d");
-    this.clear_canvas(rc);
+    if (!tetris.config.debug) {
+        rc = this.shape_canvas.getContext("2d");
+        this.clear_canvas(rc);
+    }
 };
 
 ShapesLayer.prototype.set_unpaused = function() {
@@ -176,6 +182,42 @@ ShapesLayer.prototype.set_unpaused = function() {
 
 
 //============================================================================//
+function InfoRegion() {
+
+}
+
+function InfoLayer() {
+    this.offset_x = 0;
+    this.offset_y = 0;
+    this.width = 0;
+    this.height = 0;
+    this.padd;
+    
+    this.canvas = document.getElementById(tetris.config.info_canvas_id);
+    
+    this.regions = {};
+    this.regions.score = {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+        dirty: false
+    };
+    this.regions.basic_stats = {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+        dirty: false
+    };
+    this.regions.shape_counts = {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+        dirty: false
+    };
+}
 
 
 //============================================================================//
@@ -191,7 +233,6 @@ function Canvas() {
     
     this.main_canvas = document.getElementById(tetris.config.main_canvas_id);
     this.buf_canvas = document.getElementById(tetris.config.buf_canvas_id);
-    //this.fg_canvas = document.getElementById(tetris.config.fg_canvas_id);
     this.bg_canvas = document.getElementById(tetris.config.bg_canvas_id);
     
     this.main_canvas.width = this.width;
@@ -199,25 +240,31 @@ function Canvas() {
     
     this.buf_canvas.width = this.width;
     this.buf_canvas.height = this.height;
-    //this.fg_canvas.width = this.width;
-    //this.fg_canvas.height = this.height;
     this.bg_canvas.width = this.width;
     this.bg_canvas.height = this.height;
     
     var offleft = this.main_canvas.offsetLeft;
     
-    document.getElementById("content-wrapper").style.height = this.height+"px";
-    document.getElementById("canvas-wrapper").style.height = this.height+"px";
-    document.getElementById("info-wrapper").style.height = this.height+"px";
-    document.getElementById("info-wrapper").style.marginLeft = (this.width)+"px";
-    //document.getElementById("info-wrapper").style.left = (offleft+this.width)+"px";
+    var canvas_wrapper = document.getElementById("canvas-wrapper");
+    var info_wrapper = document.getElementById("info-wrapper");
+    var content_wrapper = document.getElementById("content-wrapper");
+    
+    canvas_wrapper.style.height = this.height+"px";
+    canvas_wrapper.style.width = this.width+"px";
+    info_wrapper.style.height = this.height+"px";
+    info_wrapper.style.width = 150+"px";
+    var w = canvas_wrapper.offsetWidth + info_wrapper.offsetWidth;
+    content_wrapper.style.height = this.height+"px";
+    content_wrapper.style.width = w+"px";
+    
+    var offset_left = document.getElementById("content-wrapper").offsetLeft;
+    
+    info_wrapper.style.marginLeft = (this.width)+"px";
+    //document.getElementById("info-wrapper").style.marginLeft = (this.width)+"px";
     
     var rc = this.bg_canvas.getContext("2d");
     rc.strokeStyle = "rgb(0,0,0,255)";
     rc.strokeRect(this.grid_x-1.5, this.grid_y-1.5, this.shapes_layer.width+3, this.shapes_layer.height+3);
-    
-    //var rc = this.fg_canvas.getContext("2d");
-    //this.clear_canvas(rc);
 }
 
 Canvas.prototype.clear_canvas = function(rc) {
@@ -257,7 +304,7 @@ Canvas.prototype.set_unpaused = function() {
 };
 
 Canvas.prototype.clear_active_shape = function() {
-    //console.log("Canvas.clear_active_shape()");
+    //logger.log("Canvas.clear_active_shape()");
     this.shapes_layer.clear_active_shape();
     this.needs_repaint = true;
 };
@@ -268,7 +315,7 @@ Canvas.prototype.draw_active_shape = function(shape) {
 };
 
 Canvas.prototype.draw_cells = function(cells) {
-    //console.log("Canvas.draw_cells()");
+    //logger.log("Canvas.draw_cells()");
     this.shapes_layer.draw_cells(cells);
     this.needs_repaint = true;
 };

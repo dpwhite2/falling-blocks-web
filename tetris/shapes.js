@@ -136,8 +136,8 @@ function get_highlight(name) {
     var hsl = rgbToHsl(c.r, c.g, c.b);
     hsl[2] *= 1.2;
     var rgb = hslToRgb(hsl[0], hsl[1], hsl[2]);
-    console.log("hsl: " + hsl);
-    console.log("rgb: " + rgb);
+    logger.ignore("hsl: " + hsl);
+    logger.ignore("rgb: " + rgb);
     var r = rgb[0].toFixed(0);
     var g = rgb[1].toFixed(0);
     var b = rgb[2].toFixed(0);
@@ -149,8 +149,8 @@ function get_shadow(name) {
     var hsl = rgbToHsl(c.r, c.g, c.b);
     hsl[2] /= 1.12;
     var rgb = hslToRgb(hsl[0], hsl[1], hsl[2]);
-    console.log("hsl: " + hsl);
-    console.log("rgb: " + rgb);
+    logger.ignore("hsl: " + hsl);
+    logger.ignore("rgb: " + rgb);
     var r = rgb[0].toFixed(0);
     var g = rgb[1].toFixed(0);
     var b = rgb[2].toFixed(0);
@@ -187,7 +187,7 @@ var shape_shadows = {
 
 
 function Shape(name, orientation) {
-    console.log("Shape()");
+    logger.ignore("Shape()");
     this.name = name;
     this.orientation = orientation || 0;
     this.color = shape_colors[name];

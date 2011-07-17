@@ -1,27 +1,83 @@
 
 body {
+    font-family: sans-serif;
     background-color: #eeeeee;
+    margin: 0;
+    padding: 0;
+    width: 100%;
 }
 
-/*#content-wrapper {
-    border: 1px solid black;
-}*/
+th {
+    font-weight: normal;
+    text-align: left;
+}
+
+#content-wrapper {
+    /*position: absolute;
+    left: auto;
+    right: auto;
+    top: 0;
+    bottom: auto;*/
+    margin-left: auto;
+    margin-right: auto;
+}
 
 #buf-canvas, #fg-canvas, #bg-canvas, #cells-canvas, #shape-canvas {
     display: none;
 }
 
 #canvas-wrapper {
-    float: left;
+    /*float: left;*/
+    position: absolute;
+    left: auto;
+    top: 0;
+    right: auto;
+    bottom: auto;
 }
 
 #info-wrapper {
     /*display: inline-block;*/
     background-color: #dddddd;
+    position: absolute;
+    left: auto;
+    top: 0;
+    right: auto;
+    bottom: auto;
 }
 
 #info-box {
-    margin-left: 1em;
+    margin: 1em 1em;
+}
+
+#score-box {
+    max-width: 100%;
+    text-align: center;
+    padding: 2px;
+    border: solid 1px #111;
+    background-color: #bbb;
+}
+#score {
+    color: #222;
+    text-align: center;
+    font-size: 2em;
+}
+
+#stats-table {
+    margin: 1em 0;
+    padding: 0;
+    width: 100%;
+}
+#shape-counts-table {
+    margin: 1em 0;
+    width: 100%;
+}
+
+#level, #lines, #shapes, #elapsed {
+    text-align: right;
+}
+
+#shapes-I, #shapes-L, #shapes-J, #shapes-T, #shapes-O, #shapes-S, #shapes-Z {
+    text-align: right;
 }
 
 /*

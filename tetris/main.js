@@ -20,7 +20,7 @@ var interval_id = null;
 
 tetris.start = function() {
     // create game
-    //var canvas = new tetris.Canvas();
+    logger.info("Starting application...");
     app = new tetris.App();
     tetris.set_handlers(app);
     interval_id = setInterval(tetris.on_tick, 5);
@@ -36,6 +36,7 @@ tetris.on_tick = function() {
 };
 
 tetris.set_handlers = function(app) {
+    logger.debug("Setting event handlers...");
     window.onkeydown = function(event){ app.on_key_down(event); };
     window.onkeyup = function(event){ app.on_key_up(event); };
     window.onkeypress = function(event){ app.on_key_press(event); };
@@ -45,14 +46,17 @@ tetris.set_handlers = function(app) {
 //============================================================================//
 function App() {
     this.canvas = new tetris.Canvas();
-    this.game = new tetris.Game();
+    this.new_game();
+    //this.game = new tetris.Game();
     this.keys_down = {};
 }
 
 App.prototype.on_render = function() {
     //var start = Date.now();
     this.canvas.paint();
-    //console.log("paint time: "+ (Date.now()-start));
+    //logger.log("paint time: "+ (Date.now()-start));
+    
+    this.update_time();
     
     requestAnimFrame(tetris.on_render, document.getElementById("main-canvas"));
 };
@@ -63,11 +67,25 @@ App.prototype.on_tick = function() {
     this.update_canvas();
 };
 
+App.prototype.update_time = function() {
+    var t = this.game.timer.elapsed();
+    var sec = t % 60;
+    var min = Math.floor(t / 60.0);
+    var s = min.toFixed(0) + ":" + ((sec < 10) ? "0" + sec.toFixed(1) : sec.toFixed(1));
+    document.getElementById("elapsed").textContent = s;
+};
+
 App.prototype.print_score = function() {
-    document.getElementById("score").textContent = this.game.status.score;
+    var score = this.game.status.score.toString();
+    while (score.length < 6) {
+        score = "0" + score;
+    }
+    document.getElementById("score").textContent = score;
+    
     document.getElementById("level").textContent = this.game.status.level;
     document.getElementById("lines").textContent = this.game.status.lines;
     document.getElementById("shapes").textContent = this.game.status.shapes;
+    this.update_time();
     
     document.getElementById("shapes-I").textContent = this.game.status.shape_counts["I"];
     document.getElementById("shapes-L").textContent = this.game.status.shape_counts["L"];
@@ -102,7 +120,7 @@ App.prototype.update_canvas = function(options) {
 };
 
 App.prototype.new_game = function() {
-    console.log("App.new_game()");
+    logger.info("App.new_game()");
     this.game = new tetris.Game();
 };
 
@@ -144,10 +162,13 @@ App.prototype.on_down_arrow = function() {
 
 App.prototype.on_key_down = function(event) {
     if (event.keyCode in this.keys_down) {
+        // ignore if the key is already pressed
         event.preventDefault();
         return;
     }
-    console.log("App.on_key_down()");
+    if (tetris.config.debug) {
+        logger.debug("App.on_key_down()");
+    }
     if (event.keyCode === UP_ARROW) {
         this.on_up_arrow();
         this.keys_down[UP_ARROW] = { func: this.on_up_arrow, 
@@ -175,17 +196,20 @@ App.prototype.on_key_down = function(event) {
 };
 
 App.prototype.on_key_up = function(event) {
-    //console.log("App.on_key_up()");
+    //logger.log("App.on_key_up()");
     if (event.keyCode in this.keys_down) {
-        //console.log("App.on_key_up(): keyCode in this.keys_down...");
+        //logger.log("App.on_key_up(): keyCode in this.keys_down...");
         delete this.keys_down[event.keyCode];
         event.preventDefault();
     }
 };
 
+/* Handle character key events. */
 App.prototype.on_key_press = function(event) {
-    console.log("App.on_key_press()");
-    //console.log(event);
+    if (tetris.config.debug) {
+        logger.debug("App.on_key_press()");
+    }
+    //logger.log(event);
     var c = String.fromCharCode(event.charCode);
     if (c === "p" || c === "P") {
         if (this.game.is_paused()) {
@@ -210,8 +234,8 @@ App.prototype.on_key_press = function(event) {
 };
 
 App.prototype.on_blur = function(event) {
-    console.log("App.on_blur()");
-    //console.log(event);
+    logger.debug("App.on_blur()");
+    //logger.log(event);
     if (!this.game.is_paused()) {
         this.game.pause(true);
         this.canvas.set_paused();

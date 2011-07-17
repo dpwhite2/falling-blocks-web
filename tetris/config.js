@@ -2,7 +2,19 @@
 var tetris = {};
 var app = null;
 
+var loglevels = {
+    ALL: 0,
+    DEBUG: 10,
+    INFO: 20,
+    WARN: 30,
+    ERROR: 40,
+    NONE: 100,
+};
+
 tetris.config = {
+    debug: true,
+    loglevel: loglevels.DEBUG,
+    
     main_canvas_id: "main-canvas",
     buf_canvas_id: "buf-canvas",
     fg_canvas_id: "fg-canvas",
